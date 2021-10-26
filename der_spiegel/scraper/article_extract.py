@@ -17,17 +17,6 @@ import json
 
 RE_FILENAME=re.compile("data/([0-9]{4})/([0-9]{1,2})/(.*?)\.html")
 
-with open("dictionary.json","r") as f:
-	DICT=json.load(f)
-
-DICT_RE={}
-for cat in DICT:
-	DICT_RE[cat]=[]
-	for word in DICT[cat]:
-		DICT_RE[cat].append(re.compile(r"\b{}\b".format(word)))
-
-CATS=list(DICT.keys())
-policy_counts=[]
 for y_entry in os.scandir("data/"):
 	if not y_entry.is_dir():
 		continue
@@ -42,7 +31,6 @@ for y_entry in os.scandir("data/"):
 		week=w_entry.name
 		
 		week_article_count=0
-		counts=[0]*len(CATS)
 		for file in glob.glob("data/{}/{}/*.html".format(year,week)):
 			tmp=RE_FILENAME.match(file)
 			#year=tmp.group(1)
@@ -61,15 +49,6 @@ for y_entry in os.scandir("data/"):
 
 			#print(article)
 			text=article.find("div",{"data-field":"text"}).get_text().strip()
-		
-			#Policy counts
-			week_article_count+=1
-			for i in range(0,len(CATS)):
-				cat=CATS[i]
-				for word in DICT_RE[cat]:
-					if word.search(text)!=None:
-						counts[i]+=1
-						break #Go to next
 			
 			lead=article.find("div",{"class":"dig-vorspann"})
 			if lead!=None:
@@ -83,15 +62,10 @@ for y_entry in os.scandir("data/"):
 		
 			articles.append([year,week,datecreated,section,headline,lead,text,filename])
 			
-		#Completed the week. Store counts in policy_counts array
-		policy_counts.append([year,week,week_article_count]+counts)
+		#Completed the week.
 		print("Finished",year,"week",week)
         #Completed the year, make a data.frame of all articles in the year and save to a csv
 	df=pd.DataFrame(articles, columns=["year","week","datecreated","section","headline","lead","text","filename"])
 	df.to_csv("data/{}.csv".format(year))
 
-#Completed all years. Write policy counts data.frame to CSV
-df=pd.DataFrame(policy_counts, columns=["year","week","article_count"]+CATS)
-df.to_csv("data/policy_counts.csv")
-		
-
+#Completed all years.
